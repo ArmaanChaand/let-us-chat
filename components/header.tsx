@@ -36,10 +36,11 @@ export default function Header() {
 
 
     }
-    const { isLoading } = useSWR(authUser ? authUser.uid + "/profile" : null, fetchProfile, {
+    const { isLoading, error } = useSWR(authUser ? authUser.uid + "/profile" : null, fetchProfile, {
         revalidateOnFocus: false,
         shouldRetryOnError: false
     })
+    console.log("Read-Profile-error: ", error)
 
 
     useEffect(() => {

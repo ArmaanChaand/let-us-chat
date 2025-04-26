@@ -40,7 +40,8 @@ export function CreateNewProfile({ open, setOpen }: CreateNewProfileProps) {
                 dispatch(store_toggleUserProfile(profile_data))
                 return "profile created!"
             },
-            error: () => {
+            error: (e) => {
+                console.log(e)
                 return "Error creating profile!"
             }
 
