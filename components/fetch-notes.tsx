@@ -4,8 +4,8 @@ import { DocNoteType } from "@/lib/types/DocNoteType";
 import { NoteFullView } from "@/components/note-full-view";
 import NotePreviewCard from "@/components/note-preview-card";
 import { cn } from "@/lib/utils";
-import { getAuth } from "firebase/auth";
-const auth = getAuth().currentUser
+import { useAppSelector } from "@/hooks/store-hooks";
+
 const notes: DocNoteType[] = [
     {
         title: "This is the Note title",
@@ -38,7 +38,7 @@ const notes: DocNoteType[] = [
 ]
 
 export default function FetchNotes() {
-
+    const authUser = useAppSelector(state => state.auth.user)
 
     const totalButtons: number = notes.length
 
@@ -59,9 +59,13 @@ export default function FetchNotes() {
         cardSpans.push(...rowSpans.slice(0, Math.min(3, totalButtons - i)))
     }
 
+    if (authUser === undefined) return (
+        <p className="mt-20 text-center text-3xl p-5 bg-primary mx-auto font-black text-primary-foreground w-full sm:w-10/12 flex flex-col">
+            Loading ...
+        </p>
+    )
 
-
-    if (!auth) return (<p className="mt-20 text-center text-3xl p-5 bg-primary mx-auto font-black text-primary-foreground w-full sm:w-10/12 flex flex-col">
+    if (authUser === null) return (<p className="mt-20 text-center text-3xl p-5 bg-primary mx-auto font-black text-primary-foreground w-full sm:w-10/12 flex flex-col">
         <span className="text-sm">
             Login to
         </span>

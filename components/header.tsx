@@ -1,5 +1,5 @@
 "use client";
-import { getAuth, onAuthStateChanged, signOut } from "firebase/auth"
+import { onAuthStateChanged, signOut } from "firebase/auth"
 import { BotMessageSquare, Loader2 } from "lucide-react";
 import { AuthDialog } from "./auth-dialog";
 import { CreateNewProfile } from "./newprofile-dialog";
@@ -7,25 +7,68 @@ import { useEffect, useState } from "react";
 import { Button } from "./ui/button";
 import { NewNoteForm } from "./newnote-dialog";
 import { firebase_auth } from "@/firebase/config";
+import { useAppDispatch, useAppSelector } from "@/hooks/store-hooks";
+import { store_toggleAuthUser, store_toggleUserProfile } from "@/store/slices/authSlice";
+import useSWR from "swr"
+import { readProfile } from "@/firebase/read";
+import { UserProfileDoc } from "@/lib/types/auth-types";
 
 
 export default function Header() {
-    const [auth_state, set_auth_state] = useState<"N" | "A" | "P" | "L">("L")
+    const [auth_state, set_auth_state] = useState<"N" | "A" | "L">("L")
+    const authUser = useAppSelector(state => state.auth.user)
+    const authProfile = useAppSelector(state => state.auth.profile)
+    const dispatch = useAppDispatch()
+
+    async function fetchProfile(swr_id: string) {
+        console.log(swr_id)
+        if (!authUser) {
+            throw new Error("Not signed in")
+        }
+        const docSnap = await readProfile(authUser?.uid)
+        if (!docSnap.exists()) {
+            throw new Error("No profile found!")
+        }
+        const profile_data = docSnap.data() as UserProfileDoc
+
+        dispatch(store_toggleUserProfile(profile_data))
+        return profile_data
+
+
+    }
+    const { isLoading } = useSWR(authUser ? authUser.uid + "/profile" : null, fetchProfile, {
+        revalidateOnFocus: false,
+        shouldRetryOnError: false
+    })
+
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(firebase_auth, (user) => {
             if (user) {
+                dispatch(store_toggleAuthUser({
+                    email: user.email,
+                    uid: user.uid,
+                    displayName: user.displayName,
+                    emailVerified: user.emailVerified,
+                    isAnonymous: user.isAnonymous,
+                    phoneNumber: user.phoneNumber,
+                    photoURL: user.photoURL,
+                    providerId: user.providerId
+                }))
+
                 set_auth_state("A")
             } else {
+                dispatch(store_toggleAuthUser(null))
                 set_auth_state("N")
             }
         })
         return () => unsubscribe()
-    }, [])
+    }, [dispatch])
 
-    const newProfile: boolean = auth_state === "P"
-    const user = getAuth().currentUser
-    const is_auth = auth_state === "A"
+
+    const newProfile: boolean = !isLoading && authUser !== null && authUser !== undefined && authProfile == null
+
+    const is_auth = auth_state === "A" || (authUser !== null && authUser !== undefined)
     return (
         <header className="w-full sticky top-0 p-8 flex flex-col sm:flex-row items-start justify-start sm:items-center bg-background">
             <div className="flex justify-start items-center">
@@ -34,8 +77,8 @@ export default function Header() {
                     {
                         is_auth ?
                             <>
-                                <span>Armaan Chaand</span>
-                                <span className="text-sm">{user?.email}</span>
+                                <span>{authUser?.displayName}</span>
+                                <span className="text-sm">{authUser?.email}</span>
                             </>
                             :
                             <>
